@@ -3,31 +3,67 @@
 namespace mix5003\ImageCrypt;
 
 use mix5003\ImageCrypt\Exception\FileNotFoundException;
-use mix5003\ImageCrypt\Exception\FileNotSupportedException;
 
 class ImageCrypt
 {
+    /* @var \mix5003\ImageCrypt\ImageHelper */
+    protected $helper;
 
-    protected function openAsImage($path)
+    public function __construct()
     {
-        if (!file_exists($path)) {
-            throw new FileNotFoundException("File '{$path}' not exists.");
-        }
-        $bin = file_get_contents($path);
-        $im = imagecreatefromstring($bin);
-        if (!$im) {
-            throw new FileNotSupportedException("File '{$path}' not supported image format.");
-        }
-
-        return $im;
+        $this->helper = new ImageHelper();
     }
 
-    protected function getImageSize($im)
+    public function createRandomKeyImage($pathKey, $width = 64, $height = 64)
     {
-        return array(
-            'x' => imagesx($im),
-            'y' => imagesy($im)
-        );
+        $imKey = imagecreatetruecolor($width, $height);
+        for ($x = 0; $x < $width; $x++) {
+            for ($y = 0; $y < $height; $y++) {
+                $keyColot = array(
+                    'r' => rand(0, 255),
+                    'g' => rand(0, 255),
+                    'b' => rand(0, 255)
+                );
+
+                $color = $this->helper->convertReadableToSystemColor($keyColot);
+
+                imagesetpixel($imKey, $x, $y, $color);
+            }
+        }
+
+        imagepng($imKey, $pathKey);
+
+        return $imKey;
+    }
+
+
+    public function encrypt($pathSrc, $pathDst, $pathKey)
+    {
+        $imSrc = $this->helper->openAsImage($pathSrc);
+        try {
+            $imKey = $this->helper->openAsImage($pathKey);
+        } catch (FileNotFoundException $e) {
+            $imKey = $this->createRandomKeyImage($pathKey);
+        }
+        $sizeSrc = $this->helper->getImageSize($imSrc);
+        $sizeKey = $this->helper->getImageSize($imKey);
+
+        $partDetail = $this->calculateNumberOfPart($sizeSrc, $sizeKey);
+
+        $imDst = imagecreatetruecolor($sizeSrc['x'], $sizeSrc['y']);
+
+        for ($currentPartX = 0; $currentPartX < $partDetail['x']; $currentPartX++) {
+            for ($currentPartY = 0; $currentPartY < $partDetail['y']; $currentPartY++) {
+                $this->encryptSubPart($imSrc, $imKey, $imDst, $currentPartX, $currentPartY, $sizeSrc, $sizeKey);
+            }
+        }
+
+        return imagepng($imDst, $pathDst);
+    }
+
+    public function decrypt($pathSrc, $pathDst, $pathKey)
+    {
+        return $this->encrypt($pathSrc, $pathDst, $pathKey);
     }
 
     protected function calculateNumberOfPart($sizeSrc, $sizeKey)
@@ -42,68 +78,32 @@ class ImageCrypt
         );
     }
 
-    protected function getReadableColor($rgb)
-    {
-        return array(
-            'r' => ($rgb >> 16) & 0xFF,
-            'g' => ($rgb >> 8) & 0xFF,
-            'b' => $rgb & 0xFF,
-        );
-    }
-
-    protected function convertReadableToSystemColor($color)
-    {
-        return ($color['r'] << 16) + ($color['g'] << 8) + $color['b'];
-    }
-
     protected function encryptPixel($imSrc, $imKey, $imDst, $x, $y, $sizeKey = null)
     {
         if ($sizeKey == null) {
-            $sizeKey = $this->getImageSize($imKey);
+            $sizeKey = $this->helper->getImageSize($imKey);
         }
 
-        $srcColor = $this->getReadableColor(imagecolorat($imSrc, $x, $y));
-        $keyColor = $this->getReadableColor(imagecolorat($imKey, $x % $sizeKey['x'], $y % $sizeKey['y']));
+        $srcColor = $this->helper->getReadableColor(imagecolorat($imSrc, $x, $y));
+        $keyColor = $this->helper->getReadableColor(imagecolorat($imKey, $x % $sizeKey['x'], $y % $sizeKey['y']));
 
         $dstColor = array(
             'r' => $srcColor['r'] ^ $keyColor['r'],
             'g' => $srcColor['g'] ^ $keyColor['g'],
             'b' => $srcColor['b'] ^ $keyColor['b'],
         );
-        $color = $this->convertReadableToSystemColor($dstColor);
+        $color = $this->helper->convertReadableToSystemColor($dstColor);
 
         imagesetpixel($imDst, $x, $y, $color);
-    }
-
-    public function createRandomKeyImage($pathKey, $width = 64, $height = 64)
-    {
-        $imKey = imagecreatetruecolor($width, $height);
-        for ($x = 0; $x < $width; $x++) {
-            for ($y = 0; $y < $height; $y++) {
-                $keyColot = array(
-                    'r' => rand(0, 255),
-                    'g' => rand(0, 255),
-                    'b' => rand(0, 255)
-                );
-
-                $color = $this->convertReadableToSystemColor($keyColot);
-
-                imagesetpixel($imKey, $x, $y, $color);
-            }
-        }
-
-        imagepng($imKey, $pathKey);
-
-        return $imKey;
     }
 
     protected function encryptSubPart($imSrc, $imKey, $imDst, $noPartX, $noPartY, $sizeSrc = null, $sizeKey = null)
     {
         if ($sizeSrc == null) {
-            $sizeSrc = $this->getImageSize($imSrc);
+            $sizeSrc = $this->helper->getImageSize($imSrc);
         }
         if ($sizeKey == null) {
-            $sizeKey = $this->getImageSize($imKey);
+            $sizeKey = $this->helper->getImageSize($imKey);
         }
 
         $startX = $noPartX * $sizeKey['x'];
@@ -126,32 +126,4 @@ class ImageCrypt
         }
     }
 
-    public function encrypt($pathSrc, $pathDst, $pathKey)
-    {
-        $imSrc = $this->openAsImage($pathSrc);
-        try {
-            $imKey = $this->openAsImage($pathKey);
-        } catch (FileNotFoundException $e) {
-            $imKey = $this->createRandomKeyImage($pathKey);
-        }
-        $sizeSrc = $this->getImageSize($imSrc);
-        $sizeKey = $this->getImageSize($imKey);
-
-        $partDetail = $this->calculateNumberOfPart($sizeSrc, $sizeKey);
-
-        $imDst = imagecreatetruecolor($sizeSrc['x'], $sizeSrc['y']);
-
-        for ($currentPartX = 0; $currentPartX < $partDetail['x']; $currentPartX++) {
-            for ($currentPartY = 0; $currentPartY < $partDetail['y']; $currentPartY++) {
-                $this->encryptSubPart($imSrc, $imKey, $imDst, $currentPartX, $currentPartY, $sizeSrc, $sizeKey);
-            }
-        }
-
-        return imagepng($imDst, $pathDst);
-    }
-
-    public function decrypt($pathSrc, $pathDst, $pathKey)
-    {
-        return $this->encrypt($pathSrc, $pathDst, $pathKey);
-    }
 }
