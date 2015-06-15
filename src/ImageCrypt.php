@@ -2,16 +2,19 @@
 
 namespace mix5003\ImageCrypt;
 
+use mix5003\ImageCrypt\Exception\FileNotFoundException;
+use mix5003\ImageCrypt\Exception\FileNotSupportedException;
+
 class ImageCrypt {
 
     protected function openAsImage($path){
         if(!file_exists($path)){
-            throw new \Exception("File '{$path}' not exists.");
+            throw new FileNotFoundException("File '{$path}' not exists.");
         }
         $bin = file_get_contents($path);
         $im = imagecreatefromstring($bin);
         if(!$im){
-            throw new \Exception("File '{$path}' not supported image format.");
+            throw new FileNotSupportedException("File '{$path}' not supported image format.");
         }
 
         return $im;
@@ -62,6 +65,26 @@ class ImageCrypt {
         imagesetpixel($imDst,$x,$y,$color);
     }
 
+    public function createRandomKeyImage($pathKey,$width = 64,$height = 64){
+        $imKey = imagecreatetruecolor($width,$height);
+        for($x = 0;$x < $width;$x++){
+            for($y=0;$y<$height;$y++){
+                $keyColot=array(
+                    'r'=>rand(0,255),
+                    'g'=>rand(0,255),
+                    'b'=>rand(0,255)
+                );
+
+                $color = $this->convertReadableToSystemColor($keyColot);
+
+                imagesetpixel($imKey,$x,$y,$color);
+            }
+        }
+
+        imagepng($imKey,$pathKey);
+        return $imKey;
+    }
+
     protected function encryptSubPart($imSrc,$imKey,$imDst,$noPartX,$noPartY){
         $sizeSrc = $this->getImageSize($imSrc);
         $sizeKey = $this->getImageSize($imKey);
@@ -88,8 +111,11 @@ class ImageCrypt {
 
     public function encrypt($pathSrc,$pathDst,$pathKey){
         $imSrc = $this->openAsImage($pathSrc);
-        $imKey = $this->openAsImage($pathKey);
-
+        try {
+            $imKey = $this->openAsImage($pathKey);
+        }catch(FileNotFoundException $e){
+            $imKey = $this->createRandomKeyImage($pathKey);
+        }
         $sizeSrc = $this->getImageSize($imSrc);
         $sizeKey = $this->getImageSize($imKey);
 
