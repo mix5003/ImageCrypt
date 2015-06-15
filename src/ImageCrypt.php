@@ -56,9 +56,11 @@ class ImageCrypt
         return ($color['r'] << 16) + ($color['r'] << 8) + $color['b'];
     }
 
-    protected function encryptPixel($imSrc, $imKey, $imDst, $x, $y)
+    protected function encryptPixel($imSrc, $imKey, $imDst, $x, $y, $sizeKey = null)
     {
-        $sizeKey = $this->getImageSize($imKey);
+        if ($sizeKey == null) {
+            $sizeKey = $this->getImageSize($imKey);
+        }
 
         $srcColor = $this->getReadableColor(imagecolorat($imSrc, $x, $y));
         $keyColor = $this->getReadableColor(imagecolorat($imKey, $x % $sizeKey['x'], $y % $sizeKey['y']));
@@ -95,10 +97,14 @@ class ImageCrypt
         return $imKey;
     }
 
-    protected function encryptSubPart($imSrc, $imKey, $imDst, $noPartX, $noPartY)
+    protected function encryptSubPart($imSrc, $imKey, $imDst, $noPartX, $noPartY, $sizeSrc = null, $sizeKey = null)
     {
-        $sizeSrc = $this->getImageSize($imSrc);
-        $sizeKey = $this->getImageSize($imKey);
+        if ($sizeSrc == null) {
+            $sizeSrc = $this->getImageSize($imSrc);
+        }
+        if ($sizeKey == null) {
+            $sizeKey = $this->getImageSize($imKey);
+        }
 
         $startX = $noPartX * $sizeKey['x'];
         $startY = $noPartY * $sizeKey['y'];
@@ -115,7 +121,7 @@ class ImageCrypt
 
         for ($x = $startX; $x < $endX; $x++) {
             for ($y = $startY; $y < $endY; $y++) {
-                $this->encryptPixel($imSrc, $imKey, $imDst, $x, $y);
+                $this->encryptPixel($imSrc, $imKey, $imDst, $x, $y, $sizeKey);
             }
         }
     }
@@ -137,7 +143,7 @@ class ImageCrypt
 
         for ($currentPartX = 0; $currentPartX < $partDetail['x']; $currentPartX++) {
             for ($currentPartY = 0; $currentPartY < $partDetail['y']; $currentPartY++) {
-                $this->encryptSubPart($imSrc, $imKey, $imDst, $currentPartX, $currentPartY);
+                $this->encryptSubPart($imSrc, $imKey, $imDst, $currentPartX, $currentPartY, $sizeSrc, $sizeKey);
             }
         }
 
