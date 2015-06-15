@@ -9,6 +9,7 @@
 namespace mix5003\ImageCrypt\Exception;
 
 
-class FileNotSupportedException extends \Exception{
+class FileNotSupportedException extends \Exception
+{
 
 }
