@@ -53,7 +53,7 @@ class ImageCrypt
 
     protected function convertReadableToSystemColor($color)
     {
-        return ($color['r'] << 16) + ($color['r'] << 8) + $color['b'];
+        return ($color['r'] << 16) + ($color['g'] << 8) + $color['b'];
     }
 
     protected function encryptPixel($imSrc, $imKey, $imDst, $x, $y, $sizeKey = null)
