@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="row">
+        <div class="col-md-6">
+            <select class="form-control" id="key-file">
+                <option value="">=== KEY FILE===</option>
+                <option value="../tests/key/1.png">1.png</option>
+                <option value="../tests/key/2.png">2.png</option>
+                <option value="../tests/key/3.png">3.png</option>
+                <option value="../tests/key/4.png">4.png</option>
+                <option value="../tests/key/5.png">5.png</option>
+            </select>
+        </div>
+        <div class="col-md-6">
+            <select class="form-control" id="pic-file">
+                <option value="">=== PICS FILE===</option>
+                <option value="../tests/tmp/1.png">1.png</option>
+                <option value="../tests/tmp/2.png">2.png</option>
+                <option value="../tests/tmp/3.png">3.png</option>
+                <option value="../tests/tmp/4.png">4.png</option>
+                <option value="../tests/tmp/5.png">5.png</option>
+            </select>
+        </div>
+    </div>
+
+    <div>
+        <img id="img-preview">
+    </div>
+<BR><BR>
+    <div>
+        <div id="decrypted"></div>
+    </div>
+
+
+    <script src="https://code.jquery.com/jquery-1.11.3.min.js"></script>
+    <script src="js/decrypter.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
