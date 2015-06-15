@@ -43,4 +43,27 @@ class ImageHelper
     {
         return ($color['r'] << 16) + ($color['g'] << 8) + $color['b'];
     }
+
+    public function checkImageMatch($pathSrc, $pathDst)
+    {
+        $imSrc = $this->openAsImage($pathSrc);
+        $imDst = $this->openAsImage($pathDst);
+
+        $sizeSrc = $this->getImageSize($imSrc);
+        $sizeDst = $this->getImageSize($imDst);
+
+        if ($sizeSrc['x'] != $sizeDst['x'] || $sizeSrc['y'] != $sizeDst['y']) {
+            return false;
+        }
+
+        for ($x = 0; $x < $sizeSrc['x']; $x++) {
+            for ($y = 0; $y < $sizeSrc['y']; $y++) {
+                if (imagecolorat($imSrc, $x, $y) != imagecolorat($imDst, $x, $y)) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
 }
